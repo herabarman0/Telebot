@@ -2,44 +2,45 @@ import os
 import asyncio
 from pyrogram import Client, filters
 
-# রেন্ডার থেকে তথ্য সংগ্রহ করা হচ্ছে
+# এনভায়রনমেন্ট ভেরিয়েবল থেকে ডাটা নেওয়া
 api_id = int(os.environ.get("API_ID"))
 api_hash = os.environ.get("API_HASH")
 bot_token = os.environ.get("BOT_TOKEN")
 session_string = os.environ.get("SESSION_STRING")
 
-# ১. ইউজার ক্লায়েন্ট (আপনার নিজের অ্যাকাউন্টের জন্য - সেশন স্ট্রিং ব্যবহার করে)
-user = Client("my_account", api_id=api_id, api_hash=api_hash, session_string=session_string)
+# ক্লায়েন্ট সেটআপ
+app = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token, session_string=session_string)
 
-# ২. বট ক্লায়েন্ট (বট টোকেনের জন্য)
-bot = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
-
-# মেসেজ পাঠানোর লজিক
-@bot.on_message(filters.command("send"))
-async def send_msg(client, message):
-    try:
-        # কমান্ড ফরম্যাট: /send [username/id] [text]
-        args = message.text.split(maxsplit=2)
-        if len(args) < 3:
-            await message.reply("ব্যবহারবিধি: /send [username] [message]")
-            return
+# অটোমেশন ফাংশন
+@app.on_message(filters.command("start_auto"))
+async def start_auto(client, message):
+    # কমান্ড ফরম্যাট: /start_auto [target] [message] [count] [interval]
+    args = message.text.split(maxsplit=4)
+    if len(args) < 5:
+        await message.reply("ব্যবহারবিধি: `/start_auto [target] [message] [count] [interval]`\nউদাহরণ: `/start_auto @username হ্যালো 5 10` (৫ বার, ১০ সেকেন্ড পর পর)")
+        return
+    
+    target = args[1]
+    text = args[2]
+    count = int(args[3])
+    interval = int(args[4])
+    
+    await message.reply(f"✅ অটোমেশন শুরু হচ্ছে: {target}-কে {count} বার মেসেজ পাঠানো হবে।")
+    
+    for i in range(count):
+        try:
+            await app.send_message(target, text)
+            await asyncio.sleep(interval) # নির্ধারিত সময় বিরতি
+        except Exception as e:
+            await message.reply(f"❌ এরর: {str(e)}")
+            break
             
-        target = args[1]
-        text = args[2]
-        
-        # নিজের অ্যাকাউন্ট দিয়ে মেসেজ পাঠানো
-        await user.send_message(target, text)
-        await message.reply(f"সফলভাবে {target}-কে মেসেজ পাঠানো হয়েছে!")
-    except Exception as e:
-        await message.reply(f"ভুল হয়েছে: {str(e)}")
+    await message.reply("🎉 অটোমেশন সম্পন্ন হয়েছে!")
 
-# বট এবং ইউজার ক্লায়েন্ট একসাথে চালানো
 async def main():
-    await user.start()
-    await bot.start()
-    print("বট এবং ইউজারবট সফলভাবে চালু হয়েছে!")
-    # বটটি যেন রেন্ডারে বন্ধ না হয়
-    await asyncio.gather(asyncio.Event().wait())
+    await app.start()
+    print("অটোমেশন বট সচল হয়েছে!")
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     asyncio.run(main())
