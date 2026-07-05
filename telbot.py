@@ -1,27 +1,21 @@
 import os
 import asyncio
-from pyrogram import Client, filters
+from telethon import TelegramClient, events
 
-# এনভায়রনমেন্ট ভেরিয়েবল থেকে তথ্য নেওয়া
-api_id = int(os.environ.get("API_ID", 0))
+# ১. রেন্ডার থেকে তথ্য সংগ্রহ
+api_id = int(os.environ.get("API_ID"))
 api_hash = os.environ.get("API_HASH")
-bot_token = os.environ.get("BOT_TOKEN")
 session_string = os.environ.get("SESSION_STRING")
 
-# ক্লায়েন্ট তৈরি
-app = Client(
-    "auto_bot",
-    api_id=api_id,
-    api_hash=api_hash,
-    bot_token=bot_token,
-    session_string=session_string
-)
+# ২. ক্লায়েন্ট সেটআপ (Telethon)
+client = TelegramClient(None, api_id, api_hash).start(session=session_string)
 
-@app.on_message(filters.command("start_auto"))
-async def start_auto(client, message):
-    args = message.text.split(maxsplit=4)
+# ৩. অটোমেশন কমান্ড: /start_auto [target] [message] [count] [interval]
+@client.on(events.NewMessage(pattern='/start_auto'))
+async def start_auto(event):
+    args = event.raw_text.split(maxsplit=4)
     if len(args) < 5:
-        await message.reply("ব্যবহারবিধি: `/start_auto [target] [message] [count] [interval]`")
+        await event.reply("ব্যবহারবিধি: `/start_auto [target] [message] [count] [interval]`")
         return
     
     target = args[1]
@@ -29,18 +23,18 @@ async def start_auto(client, message):
     count = int(args[3])
     interval = int(args[4])
     
-    await message.reply(f"অটোমেশন শুরু: {target}-কে {count} বার মেসেজ দেওয়া হবে।")
+    await event.reply(f"✅ অটোমেশন শুরু: {target}-কে {count} বার মেসেজ দেওয়া হচ্ছে।")
     
     for i in range(count):
         try:
             await client.send_message(target, text)
             await asyncio.sleep(interval)
         except Exception as e:
-            await message.reply(f"এরর: {str(e)}")
+            await event.reply(f"❌ এরর: {str(e)}")
             break
             
-    await message.reply("অটোমেশন সম্পন্ন।")
+    await event.reply("🎉 অটোমেশন সম্পন্ন হয়েছে!")
 
-# মেইন লুপ
-if __name__ == "__main__":
-    app.run()
+# ৪. বট চালানো
+print("বট সচল হয়েছে!")
+client.run_until_disconnected()
