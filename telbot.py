@@ -2,26 +2,28 @@ import os
 import asyncio
 from pyrogram import Client, filters
 
-# রেন্ডার থেকে তথ্য গ্রহণ
+# রেন্ডার থেকে তথ্য সংগ্রহ করা হচ্ছে
 api_id = int(os.environ.get("API_ID"))
 api_hash = os.environ.get("API_HASH")
 bot_token = os.environ.get("BOT_TOKEN")
+session_string = os.environ.get("SESSION_STRING")
 
-# ক্লায়েন্ট সেটআপ
-# User account client (নিজের অ্যাকাউন্টের জন্য)
-user = Client("my_account", api_id=api_id, api_hash=api_hash)
-# Bot client (বট টোকেনের জন্য)
+# ১. ইউজার ক্লায়েন্ট (আপনার নিজের অ্যাকাউন্টের জন্য - সেশন স্ট্রিং ব্যবহার করে)
+user = Client("my_account", api_id=api_id, api_hash=api_hash, session_string=session_string)
+
+# ২. বট ক্লায়েন্ট (বট টোকেনের জন্য)
 bot = Client("my_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
-@bot.on_message(filters.command("start"))
-async def start(client, message):
-    await message.reply("আমি প্রস্তুত! যেকোনো মেসেজ পাঠানোর জন্য /send [username] [message] কমান্ডটি ব্যবহার করুন।")
-
+# মেসেজ পাঠানোর লজিক
 @bot.on_message(filters.command("send"))
 async def send_msg(client, message):
     try:
-        # কমান্ড ফরম্যাট: /send [username] [text]
+        # কমান্ড ফরম্যাট: /send [username/id] [text]
         args = message.text.split(maxsplit=2)
+        if len(args) < 3:
+            await message.reply("ব্যবহারবিধি: /send [username] [message]")
+            return
+            
         target = args[1]
         text = args[2]
         
@@ -35,8 +37,9 @@ async def send_msg(client, message):
 async def main():
     await user.start()
     await bot.start()
-    print("বট সফলভাবে চালু হয়েছে!")
-    await asyncio.gather(asyncio.Event().wait()) # প্রোগ্রামটি বন্ধ না করার জন্য
+    print("বট এবং ইউজারবট সফলভাবে চালু হয়েছে!")
+    # বটটি যেন রেন্ডারে বন্ধ না হয়
+    await asyncio.gather(asyncio.Event().wait())
 
 if __name__ == "__main__":
     asyncio.run(main())
